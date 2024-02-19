@@ -61,15 +61,15 @@ class HoltWintersModel:
             raise ValueError("Invalid value for initialization_method. Expected 'estimated', 'heuristic', 'legacy-heuristic', or 'known'")
         
         # Check if initial_level is a float
-        if not isinstance(initial_level, float):
+        if not isinstance(initial_level, float) and initial_level is not None:
             raise TypeError("initial_level must be a float")
         
         # Check if initial_trend is a float
-        if not isinstance(initial_trend, float):
+        if not isinstance(initial_trend, float) and initial_trend is not None:
             raise TypeError("initial_trend must be a float")
         
         # Check if initial_seasonal is a float
-        if not isinstance(initial_seasonal, float):
+        if not isinstance(initial_seasonal, float) and initial_seasonal is not None:
             raise TypeError("initial_seasonal must be a float")
         
         # Check if use_boxcox is either a boolean or float or has a value of 'log'
@@ -119,7 +119,7 @@ class HoltWintersModel:
             model = ExponentialSmoothing(time_series, seasonal_periods=self.seasonal_period, trend=self.trend, seasonal=self.seasonality)
             self.fitted_model = model.fit(remove_bias=remove_bias)
 
-    def predict(self, steps=1):
+    def forecast(self, steps=1):
         # Perform data validation
         if not isinstance(steps, int) or steps <= 0:
             raise ValueError("steps must be a positive integer")
