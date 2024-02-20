@@ -8,6 +8,7 @@ import os
 import importlib
 from models.HoltWintersModel import HoltWintersModel
 import numpy as np
+from collections import deque
 
 # Function to dynamically import models
 def import_model(module_name):
@@ -25,7 +26,7 @@ class TimeSeriesVisualizer:
         self.selected_dataset = None
         self.train_split = 0.8
         self.forecast_horizon = 1
-        self.model_labels = []
+        self.model_labels = deque(maxlen=3)
 
         # UI components
         self.model_frame = ttk.Frame(self.root)
@@ -100,10 +101,11 @@ class TimeSeriesVisualizer:
         selected_model = selected_model.replace('.py', '')
         model = import_model(selected_model)
         hyperparameters = model.__init__.__code__.co_varnames[1:]
-        # Get the required/optional status of hyperparameters
-        required_hyperparameters = [param not in model.__init__.__code__.co_varnames[len(model.__init__.__defaults__):] for param in hyperparameters]
-        print(hyperparameters)
-        print(required_hyperparameters)
+        
+        hyperparameters = list(hyperparameters)
+        hyperparameters.append('Model_Label')
+        hyperparameters = tuple(hyperparameters)
+
         # Create a pop-up window
         popup = tk.Toplevel(self.root)
         popup.title("Hyperparameter Selection")
@@ -130,6 +132,7 @@ class TimeSeriesVisualizer:
 
         # Get the values from the entry fields
         hyperparameters = [entry.get() for entry in entries]
+        print(hyperparameters)
 
         for i in range(len(hyperparameters)):
             # try to convert to int if possible
@@ -155,6 +158,17 @@ class TimeSeriesVisualizer:
             # if the param is empty, then remove it from the dictionary
             if param == '':
                 remove_labels.append(label)
+            if label == 'Model_Label' and param != '':
+                self.model_labels.append(param)
+            elif label == 'Model_Label' and param == '':
+                # create a popup window to inform the user that the model label is empty
+                popup = tk.Toplevel(self.root)
+                popup.title("Model Label Error")
+                label = ttk.Label(popup, text="Model Label cannot be empty")
+                label.grid(row=0, column=0, padx=5, pady=5)
+                confirm_button = ttk.Button(popup, text="Confirm", command=popup.destroy)
+                confirm_button.grid(row=1, column=0, padx=5, pady=5)
+                return
         
         # remove all the keys in remove_labels
         for label in remove_labels:
@@ -162,11 +176,10 @@ class TimeSeriesVisualizer:
                 
         # Update the model with the selected hyperparameters
         model_hyperparameters = {label: param for label, param in labels_and_params.items() if label in model.__init__.__code__.co_varnames}
-        print(model_hyperparameters)
         self.loaded_models.append(model(**model_hyperparameters))
         
         # update the loaded models combobox
-        self.loaded_model_combobox['values'] = self.loaded_models
+        self.loaded_model_combobox['values'] = list(self.model_labels)
         self.loaded_model_combobox.current(0)
         
         self.update_visualization()
@@ -202,8 +215,8 @@ class TimeSeriesVisualizer:
 
         data = np.array(self.selected_dataset['Value'])
         if self.loaded_models != []:
+            forecasted_data_per_model = []
             selected_model = self.loaded_models[-1]
-            self.model_labels.append(selected_model.__class__.__name__)
 
             # get the data for training
             train_data = data[:int(len(data) * self.train_split)]
@@ -211,18 +224,23 @@ class TimeSeriesVisualizer:
             # obtain the forecast period
             forecast_period = int(len(data) * (1 - self.train_split))
 
-            # fit the train data
-            selected_model.fit(time_series = train_data)
+            for model in self.loaded_models:
+                # fit the train data
+                model.fit(time_series = train_data)
 
-            # make the forecast
-            forecast = selected_model.forecast(forecast_period)
-        return data, forecast
+                # make the forecast
+                forecast = model.forecast(forecast_period)
+                forecasted_data_per_model.append(forecast)
+
+        return data, forecasted_data_per_model
 
     def plot_data_forecast(self, data, forecast):
         self.ax.clear()
         self.ax.plot(range(0, len(data)), data, label='Data', marker='o', markersize=3)
-        self.ax.plot(range(int(len(data) * self.train_split), len(data) - 1) , forecast, label=self.model_labels[0], linestyle='--', marker='o', markersize=3)
+        for i in range(0, len(self.loaded_models)):
+            self.ax.plot(range(int(len(data) * self.train_split), len(data) - 1) , forecast[i], label=self.model_labels[i], linestyle='--', marker='o', markersize=3)
         self.ax.legend()
+        self.ax.grid()
         self.canvas.draw()
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ amplitude = 1  # Amplitude of the sine wave
 mean = 5  # Mean of the sine wave
 seasonal_period = 24  # Seasonal period of the sine wave
 values = mean + amplitude * np.sin(2 * np.pi * np.arange(len(dates)) / seasonal_period)
-
+values[24*3] = 12
 # Create a DataFrame with the date and values
 df = pd.DataFrame({'Date': dates, 'Value': values})
 
@@ -27,4 +27,4 @@ plt.title('Time-Series Data')
 plt.show()
 
 # Save the DataFrame as a CSV file
-df.to_csv('C:\\Users\\Manas\\Desktop\\TimeSeriesVisualizer\\data\\SampleSinusoid_Period24.csv')
+df.to_csv('C:\\Users\\Manas\\Desktop\\TimeSeriesVisualizer\\data\\SampleSinusoid_Period24_withOutlier.csv')
