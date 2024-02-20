@@ -3,9 +3,9 @@ import numpy as np
 
 class HoltWintersModel:
     def __init__(self,
-                    seasonality,
-                    trend,
-                    seasonal_period,
+                    seasonality = None,
+                    trend = None,
+                    seasonal_period = None,
                     damped_trend=False,
                     initialization_method="estimated",
                     initial_level=None,
@@ -35,20 +35,25 @@ class HoltWintersModel:
         - missing (str): The method to handle missing values. Valid values are 'none', 'drop', or 'interpolate'. Default is 'none'.
         """
         # Check if seasonality is a string and validate its value
-        if not isinstance(seasonality, str):
+        if (seasonality is not None) and (not isinstance(seasonality, str)):
             raise TypeError("seasonality must be a string")
         if seasonality not in ['add', 'mul', 'additive', 'multiplicative', None]:
             raise ValueError("Invalid value for seasonality. Expected 'add', 'mul', 'additive', 'multiplicative', or None.")
         
         # Check if trend is a string and validate its value
-        if not isinstance(trend, str):
+        if (trend is not None)  and (not isinstance(trend, str)):
             raise TypeError("trend must be a string")
         if trend not in ['add', 'mul', 'additive', 'multiplicative', None]:
             raise ValueError("Invalid value for trend. Expected 'add', 'mul', 'additive', 'multiplicative', or None.")
         
+        # if seasonaility is not None, then seasonal_period must be an integer
+        if seasonality is not None and seasonal_period is None:
+            raise ValueError("seasonal_period must be provided if seasonality is not None")
         # Check if seasonal_period is an integer and validate its value
-        if not isinstance(seasonal_period, int):
+        if seasonality is not None and seasonal_period is not None and not isinstance(seasonal_period, int):
             raise TypeError("seasonal_period must be an integer")
+        if seasonality is None and seasonal_period is not None:
+            raise ValueError("seasonal_period must be None if seasonality is None")
         
         # Check if damped_trend is a boolean
         if not isinstance(damped_trend, bool):
